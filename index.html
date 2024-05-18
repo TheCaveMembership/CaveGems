@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Cave Membership</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="static/css/styles.css" rel="stylesheet" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+    <script> Pi.init({ version: "2.0", sandbox: false }) </script>
+    <script> 
+        // Authenticate the user, and get permission to request payments from them (added 'username' to provide username to API):
+        const scopes = ['payments', 'username'];
+        var accessToken
+        var username
+
+        // Read more about this callback in the SDK reference:
+        function onIncompletePaymentFound(payment) { 
+            paymentId = payment.identifier
+            txid = payment.transaction.txid
+            $.post('/payment/complete',
+                {
+                    paymentId: paymentId,
+                    txid: txid,
+                    debug: 'cancel'
+                }
+            )
+        };
+
+        Pi.authenticate(scopes, onIncompletePaymentFound).then(function(auth) {
+            accessToken = auth.accessToken
+            username = auth.user.username
+            $('#username').text(username); // writes username to the page
+        }).catch(function(error) {
+            console.error(error);
+        });
+    </script>
+    <script>
+        // we're doing payments
+        const Pi = window.Pi;
+        // main payments function
+        function createPayment() {
+            const paymentData = {
+                amount: 1.00,
+                memo: "You are about to purchase The Cave Membership!",
+                metadata: { CaveMember: "PI NETWORK" }
+            };
+            // the SDK does all this like magic
+            const paymentCallbacks = {
+                onReadyForServerApproval: (paymentDTO) => {
+                    paymentId = paymentDTO
+                    $.post('/payment/approve', {
+                        paymentId: paymentId,
+                        accessToken: accessToken
+                    })
+                },
+                onReadyForServerCompletion: (paymentDTO, txid) => {
+                    paymentId = paymentDTO
+                    txid = txid
+                    $.post('/payment/complete', 
+                        {
+                            paymentId: paymentId,
+                            txid: txid,
+                            debug: 'complete'
+                        },
+                        function() {
+                            $('#emailBox').show();
+                        }
+                    )
+                },
+                onCancel: (paymentDTO) => {
+                    paymentId = paymentDTO.identifier
+                    $.post('/payment/complete',
+                        {
+                            paymentId: paymentId,
+                            // txid: txid,
+                            debug: 'cancel'
+                        }
+                    )
+                },
+                onError: (paymentDTO) => {
+                    console.log('There was an error', paymentDTO)
+                    paymentId = paymentDTO.identifier
+                    $.post('/payment/error',
+                        {
+                            paymentDTO: paymentDTO,
+                            paymentId: paymentId,
+                            // txid: txid,
+                            debug: 'error'
+                        }
+                    )
+                },
+                onIncompletePaymentFound: function(paymentDTO) { 
+                    paymentId = paymentDTO.identifier
+                    console.log('onIncompletePaymentFound', paymentId)
+                    $.post('/payment/complete',
+                        {
+                            paymentId: paymentId,
+                            txid: paymentDTO.transaction.txid
+                        }
+                    )
+                }
+            };
+
+            Pi.createPayment(paymentData, paymentCallbacks);
+        }
+
+        function submitEmail() {
+            const email = $('#email').val();
+            $.post('/save_email', { email: email }, function() {
+                alert('Email saved successfully!');
+                $('#emailBox').hide();
+            });
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>The Cave Membership</h1>
+        <p>New Cave Members can start mining Cave Gems right away! <span id="username"></span></p>
+        <button class="btn btn-primary" onclick="createPayment()">JOIN NOW</button>
+        <div id="emailBox" style="display:none;">
+            <h2>CONGRATULATIONS!</h2>
+            <p>Please enter your email to complete the process:</p>
+            <input type="email" id="email" class="form-control" placeholder="Enter your email">
+            <button class="btn btn-success" onclick="submitEmail()">Submit</button>
+        </div>
+    </div>
+</body>
+</html>
