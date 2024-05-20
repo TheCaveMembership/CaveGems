@@ -18,6 +18,6 @@ Cave Gems is fully operational and integrated within my Shopify website/store. A
 
 I have developed this app myself and have been actively using it within my own business. My experience with **The Cave Collectables** has demonstrated the effectiveness of the Cave Gems portal in creating a dynamic and engaging community.
 
-For more information or inquiries, feel free to reach out to me via the contact information provided in this repository.
+For more information or inquiries, feel free to reach out to me via email at [support@thecavecollectables.com](mailto:support@thecavecollectables.com).
 
 ---
